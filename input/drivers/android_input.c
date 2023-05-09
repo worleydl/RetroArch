@@ -655,6 +655,7 @@ static INLINE void android_mouse_calculate_deltas(android_input_t *android,
 
    /* This axis is only available on Android Nougat and on 
     * Android devices with NVIDIA extensions */
+
    if (p_AMotionEvent_getAxisValue)
    {
       x = AMotionEvent_getAxisValue(event,AMOTION_EVENT_AXIS_RELATIVE_X,
@@ -1468,11 +1469,14 @@ static void android_input_poll_input_default(android_input_t *android)
          switch (type_event)
          {
             case AINPUT_EVENT_TYPE_MOTION:
+	       /* This breaks using touchpad as mouse, but probably should be an option to support this method of input
+		*
                if ((source & AINPUT_SOURCE_TOUCHPAD))
                   engine_handle_touchpad(android_app, event, port);
+	       */
                /* Only handle events from a touchscreen or mouse */
-               else if ((source & (AINPUT_SOURCE_TOUCHSCREEN 
-                           | AINPUT_SOURCE_STYLUS | AINPUT_SOURCE_MOUSE)))
+               if ((source & (AINPUT_SOURCE_TOUCHSCREEN
+                           | AINPUT_SOURCE_STYLUS | AINPUT_SOURCE_MOUSE | AINPUT_SOURCE_MOUSE_RELATIVE | AINPUT_SOURCE_TOUCHPAD | AINPUT_SOURCE_TRACKBALL)))
                   android_input_poll_event_type_motion(android, event,
                         port, source);
                else
