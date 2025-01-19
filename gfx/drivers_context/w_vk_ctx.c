@@ -93,6 +93,7 @@ static void gfx_ctx_w_vk_check_window(void *data, bool *quit,
     * Bigger than zero difference required in order to prevent
     * constant reinit when adjusting rate option in 0.001 increments.
     */
+#ifndef __WINRT__
    if (     (win32_vk.flags & VK_DATA_FLAG_FULLSCREEN)
          && (g_win32_refresh_rate)
          && (g_win32_refresh_rate  != refresh_rate) 
@@ -103,6 +104,7 @@ static void gfx_ctx_w_vk_check_window(void *data, bool *quit,
       g_win32_refresh_rate = settings->floats.video_refresh_rate;
       command_event(CMD_EVENT_REINIT, NULL);
    }
+#endif
 }
 
 static void gfx_ctx_w_vk_swap_buffers(void *data)
@@ -146,6 +148,7 @@ static void gfx_ctx_w_vk_destroy(void *data)
       slock_free(win32_vk.context.queue_lock);
    memset(&win32_vk, 0, sizeof(win32_vk));
 
+#ifndef __WINRT__
    if (window)
    {
       win32_monitor_from_window();
@@ -157,6 +160,7 @@ static void gfx_ctx_w_vk_destroy(void *data)
       win32_monitor_get_info();
       g_win32_flags &= ~WIN32_CMN_FLAG_RESTORE_DESKTOP;
    }
+#endif
 
    if (vk)
       free(vk);
@@ -166,7 +170,9 @@ static void gfx_ctx_w_vk_destroy(void *data)
 
 static void *gfx_ctx_w_vk_init(void *video_driver)
 {
+#ifndef __WINRT__
    WNDCLASSEX wndclass     = {0};
+#endif
    gfx_ctx_w_vk_data_t *vk = (gfx_ctx_w_vk_data_t*)calloc(1, sizeof(*vk));
    uint8_t win32_flags     = win32_get_flags();
 
@@ -176,8 +182,15 @@ static void *gfx_ctx_w_vk_init(void *video_driver)
    if (win32_flags & WIN32_CMN_FLAG_INITED)
       gfx_ctx_w_vk_destroy(NULL);
 
+   if (!vulkan_context_init(&win32_vk, VULKAN_WSI_WIN32))
+      goto error;
+
+
+
+#ifndef __WINRT__
    win32_window_reset();
    win32_monitor_init();
+
 
    {
       settings_t *settings     = config_get_ptr();
@@ -193,11 +206,14 @@ static void *gfx_ctx_w_vk_init(void *video_driver)
    }
    if (!win32_window_init(&wndclass, true, NULL))
       goto error;
+#else
+   vulkan_surface_create(&win32_vk,
+         VULKAN_WSI_WIN32,
+         GetModuleHandle(NULL), uwp_get_corewindow(),
+      3840, 2160, win32_vk_interval);
+#endif
 
-   if (!vulkan_context_init(&win32_vk, VULKAN_WSI_WIN32))
-      goto error;
-
-   return vk;
+      return vk;
 
 error:
    if (vk)
@@ -257,6 +273,24 @@ static void gfx_ctx_w_vk_input_driver(void *data,
    dinput_vk      = input_driver_init_wrap(&input_dinput, joypad_name);
    *input         = dinput_vk ? &input_dinput : NULL;
    *input_data    = dinput_vk;
+#endif
+
+#if defined(__WINRT__)
+   // DLW: Taken from gl input setup
+   /* Plain xinput is supported on UWP, but it
+    * supports joypad only (uwp driver was added later) */
+   if (string_is_equal(settings->arrays.input_driver, "xinput"))
+   {
+      void* xinput = input_driver_init_wrap(&input_xinput, joypad_name);
+      *input = xinput ? (input_driver_t*)&input_xinput : NULL;
+      *input_data = xinput;
+   }
+   else
+   {
+      void* uwp = input_driver_init_wrap(&input_uwp, joypad_name);
+      *input = uwp ? (input_driver_t*)&input_uwp : NULL;
+      *input_data = uwp;
+   }
 #endif
 }
 

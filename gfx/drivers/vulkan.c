@@ -1861,7 +1861,7 @@ static const gfx_ctx_driver_t *gfx_ctx_vk_drivers[] = {
 #if defined(__APPLE__)
    &gfx_ctx_cocoavk,
 #endif
-#if defined(_WIN32) && !defined(__WINRT__)
+#if defined(_WIN32)
    &gfx_ctx_w_vk,
 #endif
 #if defined(ANDROID)
@@ -3359,8 +3359,8 @@ static void *vulkan_init(const video_info_t *video,
       force_fullscreen = true;
    }
 
-   full_x                             = mode_width;
-   full_y                             = mode_height;
+   full_x                             = mode_width ? mode_width : 3840;
+   full_y                             = mode_height ? mode_height : 2160;
    mode_width                         = 0;
    mode_height                        = 0;
 
