@@ -3359,8 +3359,8 @@ static void *vulkan_init(const video_info_t *video,
       force_fullscreen = true;
    }
 
-   full_x                             = mode_width ? mode_width : 3840;
-   full_y                             = mode_height ? mode_height : 2160;
+   full_x                             = mode_width;
+   full_y                             = mode_height;
    mode_width                         = 0;
    mode_height                        = 0;
 

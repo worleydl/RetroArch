@@ -210,11 +210,10 @@ static void *gfx_ctx_w_vk_init(void *video_driver)
    vulkan_surface_create(&win32_vk,
          VULKAN_WSI_WIN32,
          GetModuleHandle(NULL), uwp_get_corewindow(),
-      3840, 2160, win32_vk_interval);
+      uwp_get_width(), uwp_get_height(), win32_vk_interval);
 #endif
 
-      return vk;
-
+   return vk;
 error:
    if (vk)
       free(vk);
