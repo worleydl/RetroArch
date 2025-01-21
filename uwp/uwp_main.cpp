@@ -51,6 +51,7 @@ using namespace Windows::System::Profile;
 using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
 using namespace Windows::Graphics::Display;
+using namespace Windows::Graphics::Display::Core;
 using namespace Windows::Devices::Enumeration;
 using namespace Windows::Storage;
 
@@ -474,6 +475,8 @@ void App::OnActivated(CoreApplicationView^ applicationView, IActivatedEventArgs^
       }
       if (reset) /* Restart driver */
          command_event(CMD_EVENT_REINIT, NULL);
+
+      
    }
 
    /* Run() won't start until the CoreWindow is activated. */
@@ -937,6 +940,91 @@ extern "C" {
          *width    = ConvertDipsToPixels(CoreWindow::GetForCurrentThread()->Bounds.Width, dpi);
          *height   = ConvertDipsToPixels(CoreWindow::GetForCurrentThread()->Bounds.Height, dpi);
       }
+   }
+
+   bool uwp_check_hdr()
+   {
+       volatile bool finished = false;
+       volatile bool output = false;
+       Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+           CoreDispatcherPriority::Normal,
+           ref new Windows::UI::Core::DispatchedHandler([&finished, &output]()
+          {
+          HdmiDisplayInformation^ hdi = HdmiDisplayInformation::GetForCurrentView();
+          auto modes = hdi->GetSupportedDisplayModes();
+          for (unsigned i = 0; i < modes->Size; i++)
+          {
+             auto mode = modes->GetAt(i);
+
+             if (mode->ColorSpace == HdmiDisplayColorSpace::BT2020 && mode->RefreshRate >= 59)
+             {
+                finished = output = true;
+                return;
+             }
+           }
+
+           output = false;
+           finished = true;
+           return;
+          })
+       );
+
+      Windows::UI::Core::CoreWindow^ corewindow = Windows::UI::Core::CoreWindow::GetForCurrentThread();
+      while (!finished)
+      {
+         if (corewindow)
+            corewindow->Dispatcher->ProcessEvents(Windows::UI::Core::CoreProcessEventsOption::ProcessAllIfPresent);
+      }
+
+      return output;
+   }
+
+   static bool uwp_hdr_enabled = false;
+
+   bool uwp_set_hdr(bool enable_hdr)
+   {
+       volatile bool finished = false;
+       volatile bool output= uwp_hdr_enabled;
+       Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+           CoreDispatcherPriority::Normal,
+           ref new Windows::UI::Core::DispatchedHandler([&enable_hdr, &finished, &output]()
+          {
+          HdmiDisplayInformation^ hdi = HdmiDisplayInformation::GetForCurrentView();
+          auto modes = hdi->GetSupportedDisplayModes();
+          for (unsigned i = 0; i < modes->Size; i++)
+          {
+             auto mode = modes->GetAt(i);
+
+             if (enable_hdr && mode->ColorSpace == HdmiDisplayColorSpace::BT2020 && mode->RefreshRate >= 59)
+             {
+                hdi->RequestSetCurrentDisplayModeAsync(mode, HdmiDisplayHdrOption::Eotf2084);
+                finished = output = true;
+                return;
+             }
+             else if (!enable_hdr && mode->ColorSpace == HdmiDisplayColorSpace::BT709 && mode->RefreshRate >= 59)
+             {
+                hdi->RequestSetCurrentDisplayModeAsync(mode, HdmiDisplayHdrOption::EotfSdr);
+                output = false;
+                finished = true;
+                return;
+             }
+           }
+
+           finished = true;
+           return;
+          })
+       );
+
+      Windows::UI::Core::CoreWindow^ corewindow = Windows::UI::Core::CoreWindow::GetForCurrentThread();
+      while (!finished)
+      {
+         if (corewindow)
+            corewindow->Dispatcher->ProcessEvents(Windows::UI::Core::CoreProcessEventsOption::ProcessAllIfPresent);
+      }
+
+      uwp_hdr_enabled = output;
+
+      return output;
    }
 
    void* uwp_get_corewindow(void)

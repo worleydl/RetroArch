@@ -35,5 +35,7 @@
     <rescap:Capability Name="runFullTrust"/>
     <rescap:Capability Name="broadFileSystemAccess" />
     <rescap:Capability Name="expandedResources" />
+    <rescap:Capability Name="hevcPlayback" />
+
   </Capabilities>
 </Package>

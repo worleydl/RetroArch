@@ -28,6 +28,9 @@ void* uwp_get_corewindow(void);
 
 bool is_running_on_xbox(void);
 
+bool uwp_check_hdr();
+bool uwp_set_hdr(bool);
+
 int uwp_get_height(void);
 int uwp_get_width(void);
 
