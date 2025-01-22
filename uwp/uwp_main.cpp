@@ -942,7 +942,7 @@ extern "C" {
       }
    }
 
-   bool uwp_check_hdr()
+   bool uwp_get_hdr_capabilities()
    {
        volatile bool finished = false;
        volatile bool output = false;
@@ -979,7 +979,20 @@ extern "C" {
       return output;
    }
 
-   static bool uwp_hdr_enabled = false;
+   static bool uwp_hdr_supported = false; // Does the device support HDR
+   static bool uwp_hdr_ready = false; // Have we checked for support already? Stability problems arise from checking too often
+   bool uwp_check_hdr() {
+       if (uwp_hdr_ready)
+       {
+           return uwp_hdr_supported;
+       }
+       else
+       {
+           return uwp_get_hdr_capabilities();
+       }
+   }
+
+   static bool uwp_hdr_enabled = false; // Has HDR been enabled/disabled by driver
 
    bool uwp_set_hdr(bool enable_hdr)
    {
