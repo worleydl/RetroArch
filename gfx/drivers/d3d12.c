@@ -2252,8 +2252,9 @@ static void d3d12_gfx_free(void* data)
    Release(d3d12->chain.renderTargets[0]);
    Release(d3d12->chain.renderTargets[1]);
 
-#if 0
+#ifdef __WINRT__
    /* Releasing this will crash eventually (?!) */
+   // DLW: If you don't free this on UWP the menu will become very unstable
    Release(d3d12->chain.handle);
 #endif
 
